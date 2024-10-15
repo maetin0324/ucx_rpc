@@ -1,0 +1,8 @@
+[package]
+name = "ucx1-sys"
+version = "0.1.0"
+edition = "2021"
+categories = ["external-ffi-bindings"]
+
+[build-dependencies]
+bindgen = "0.70.1"
