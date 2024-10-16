@@ -2,6 +2,7 @@ use std::{ffi::CString, mem::MaybeUninit, ptr::null};
 
 use ucx1_sys::*;
 use ucx_rpc::Error;
+use ucx_rpc::ucp::*;
 
 fn main() {
     let mut handle = MaybeUninit::uninit();
@@ -32,6 +33,14 @@ fn main() {
         mt_workers_shared: 1,
         ..unsafe { MaybeUninit::uninit().assume_init() }
     };
+
+    let ctx = Context::new().unwrap();
+    let worker = ctx.create_worker().unwrap();
+    worker.print_to_stderr();
+    worker.progress();
+
+    // let mut context = MaybeUninit::uninit();
+    // let status = unsafe { ucp_init(&params, null(), context.as_mut_ptr()) };
 }
 
 extern "C" {
