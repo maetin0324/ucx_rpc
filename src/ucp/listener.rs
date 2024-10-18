@@ -1,3 +1,5 @@
+// use tracing::trace;
+
 // use crate::Error;
 
 // use super::*;
@@ -12,8 +14,8 @@
 // pub struct Listener {
 //     handle: ucp_listener_h,
 //     #[allow(unused)]
-//     sender: Rc<mpsc::UnboundedSender<ConnectionRequest>>,
-//     recver: mpsc::UnboundedReceiver<ConnectionRequest>,
+//     sender: Rc<mpsc::Sender<ConnectionRequest>>,
+//     recver: mpsc::Receiver<ConnectionRequest>,
 // }
 
 // /// An incoming connection request.
@@ -50,13 +52,13 @@
 //     pub(super) fn new(worker: &Rc<Worker>, addr: SocketAddr) -> Result<Self, Error> {
 //         unsafe extern "C" fn connect_handler(conn_request: ucp_conn_request_h, arg: *mut c_void) {
 //             trace!("connect request={:?}", conn_request);
-//             let sender = &*(arg as *const mpsc::UnboundedSender<ConnectionRequest>);
+//             let sender = &*(arg as *const mpsc::Sender<ConnectionRequest>);
 //             let connection = ConnectionRequest {
 //                 handle: conn_request,
 //             };
-//             sender.unbounded_send(connection).unwrap();
+//             sender.send(connection).unwrap();
 //         }
-//         let (sender, recver) = mpsc::unbounded();
+//         let (sender, recver) = mpsc::channel();
 //         let sender = Rc::new(sender);
 //         let sockaddr = socket2::SockAddr::from(addr);
 //         let params = ucp_listener_params_t {
@@ -73,7 +75,7 @@
 //             },
 //             conn_handler: ucp_listener_conn_handler_t {
 //                 cb: Some(connect_handler),
-//                 arg: &*sender as *const mpsc::UnboundedSender<ConnectionRequest> as _,
+//                 arg: &*sender as *const mpsc::Sender<ConnectionRequest> as _,
 //             },
 //         };
 //         let mut handle = MaybeUninit::uninit();
@@ -103,7 +105,7 @@
 
 //     /// Waiting for the next connection request.
 //     pub async fn next(&mut self) -> ConnectionRequest {
-//         self.recver.next().await.unwrap()
+//         self.recver.next().unwrap()
 //     }
 
 //     /// Reject a connection.
@@ -120,34 +122,34 @@
 //     }
 // }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+// // #[cfg(test)]
+// // mod tests {
+// //     use super::*;
 
-//     #[test_log::test]
-//     fn accept() {
-//         let (sender, recver) = tokio::sync::oneshot::channel();
-//         let f1 = spawn_thread!(async move {
-//             let context = Context::new().unwrap();
-//             let worker = context.create_worker().unwrap();
-//             tokio::task::spawn_local(worker.clone().polling());
-//             let mut listener = worker
-//                 .create_listener("0.0.0.0:0".parse().unwrap())
-//                 .unwrap();
-//             let listen_port = listener.socket_addr().unwrap().port();
-//             sender.send(listen_port).unwrap();
-//             let conn = listener.next().await;
-//             let _endpoint = worker.accept(conn).await.unwrap();
-//         });
-//         spawn_thread!(async move {
-//             let context = Context::new().unwrap();
-//             let worker = context.create_worker().unwrap();
-//             tokio::task::spawn_local(worker.clone().polling());
-//             let mut addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
-//             let listen_port = recver.await.unwrap();
-//             addr.set_port(listen_port);
-//             let _endpoint = worker.connect_socket(addr).await.unwrap();
-//         });
-//         f1.join().unwrap();
-//     }
-// }
+// //     #[test_log::test]
+// //     fn accept() {
+// //         let (sender, recver) = tokio::sync::oneshot::channel();
+// //         let f1 = spawn_thread!(async move {
+// //             let context = Context::new().unwrap();
+// //             let worker = context.create_worker().unwrap();
+// //             tokio::task::spawn_local(worker.clone().polling());
+// //             let mut listener = worker
+// //                 .create_listener("0.0.0.0:0".parse().unwrap())
+// //                 .unwrap();
+// //             let listen_port = listener.socket_addr().unwrap().port();
+// //             sender.send(listen_port).unwrap();
+// //             let conn = listener.next().await;
+// //             let _endpoint = worker.accept(conn).await.unwrap();
+// //         });
+// //         spawn_thread!(async move {
+// //             let context = Context::new().unwrap();
+// //             let worker = context.create_worker().unwrap();
+// //             tokio::task::spawn_local(worker.clone().polling());
+// //             let mut addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+// //             let listen_port = recver.await.unwrap();
+// //             addr.set_port(listen_port);
+// //             let _endpoint = worker.connect_socket(addr).await.unwrap();
+// //         });
+// //         f1.join().unwrap();
+// //     }
+// // }

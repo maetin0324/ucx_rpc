@@ -10,7 +10,7 @@ use std::sync::RwLock;
 use tokio::io::unix::AsyncFd;
 
 /// An object representing the communication context.
-#[derive(Derivative)]
+// #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Worker {
     pub(super) handle: ucp_worker_h,

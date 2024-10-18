@@ -11,7 +11,7 @@ use std::sync::Arc;
 use ucx1_sys::*;
 
 // mod endpoint;
-mod listener;
+// mod listener;
 mod worker;
 
 use crate::Error;
@@ -116,15 +116,10 @@ impl Context {
         }))
     }
 
-    /// Create a `Worker` object.
     pub fn create_worker(self: &Arc<Self>) -> Result<Rc<Worker>, Error> {
         Worker::new(self)
     }
 
-    /// Prints information about the context configuration.
-    ///
-    /// Including memory domains, transport resources, and
-    /// other useful information associated with the context.
     pub fn print_to_stderr(&self) {
         unsafe { ucp_context_print_info(self.handle, stderr) };
     }
