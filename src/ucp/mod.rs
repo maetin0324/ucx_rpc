@@ -10,8 +10,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 use ucx1_sys::*;
 
-// mod endpoint;
-// mod listener;
+mod endpoint;
+mod listener;
 mod worker;
 
 use crate::Error;
