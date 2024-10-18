@@ -1,7 +1,3 @@
-use tracing::trace;
-
-use crate::Error;
-
 use super::*;
 use std::rc::Weak;
 // use futures::channel::mpsc;
@@ -9,14 +5,18 @@ use std::rc::Weak;
 use std::sync::mpsc;
 use std::mem::MaybeUninit;
 use std::net::SocketAddr;
+use tracing::{info, trace};
+use crate::Error;
 
-struct ConnHandlerData<S> {
+#[derive(Debug)]
+pub struct ConnHandlerData<S> {
   cb: unsafe fn(ConnectionRequest, Rc<Worker>, S),
   state: S,
   worker: Rc<Worker>,
 }
 
-struct Listener<S> {
+#[derive(Debug)]
+pub struct Listener<S> {
   h: ucp_listener_h,
   _worker: Rc<Worker>,
   _conn_handler_data: Rc<ConnHandlerData<S>>,
@@ -31,7 +31,7 @@ impl<S> Drop for Listener<S> {
 }
 
 impl<S: Clone> Listener<S> {
-  unsafe fn create(
+  pub unsafe fn create(
       worker: &Rc<Worker>,
       addr: SocketAddr,
       cb: unsafe fn(ConnectionRequest, Rc<Worker>, S),
@@ -82,6 +82,7 @@ impl<S: Clone> Listener<S> {
       let mut listener = MaybeUninit::uninit();
 
       let status = ucp_listener_create(worker.handle, &listener_params, listener.as_mut_ptr());
+      info!("create listener: {:?}", status);
       Error::from_status(status)?;
       let listener = listener.assume_init();
       let listener = Listener {

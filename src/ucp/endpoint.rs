@@ -2,34 +2,44 @@ use super::*;
 use crate::ucp::listener::ConnectionRequest;
 use std::{cell::RefCell, net::SocketAddr, rc::Weak};
 use socket2::SockAddr;
-use tracing::error;
+use tracing::{error, info};
 
 // 基本はRcで保持する
 // err_handlerが呼ばれると自動的にcloseされたとみなし、Weakを通してclosedフラグを立てる
 // closedフラグが立っていない場合はdropでucp_ep_close_nbxする
 // ucp_ep_destroyはdropで呼ぶ
+#[derive(Debug)]
 pub struct Endpoint {
   pub ptr: ucp_ep_h,
   pub closed: Rc<RefCell<bool>>,
   pub worker: Rc<Worker>,
 }
 
+#[derive(Debug)]
 pub struct StatusPtr {
   pub ptr: ucs_status_ptr_t,
 }
 
 impl StatusPtr {
-  unsafe fn wait(self, worker: &Worker) -> Result<(), Error> {
+  pub fn wait(self, worker: &Worker) -> Result<(), Error> {
       if !self.ptr.is_null() && UCS_PTR_STATUS(self.ptr) != ucs_status_t::UCS_OK {
           let mut checked_status = ucs_status_t::UCS_INPROGRESS;
           while checked_status == ucs_status_t::UCS_INPROGRESS {
-              checked_status = ucp_request_check_status(self.ptr);
+              unsafe {
+                checked_status = ucp_request_check_status(self.ptr);
+              }
               worker.progress();
+              info!("wait checked_status: {:?}", checked_status);
           }
+          // info!("wait checked_status: {:?}", checked_status);
           Error::from_status(checked_status)
       } else {
           Ok(())
       }
+  }
+
+  pub fn status(&self) -> ucs_status_t {
+      unsafe { ucp_request_check_status(self.ptr) }
   }
 }
 impl Drop for StatusPtr {
@@ -41,6 +51,12 @@ impl Drop for StatusPtr {
 }
 
 impl Endpoint {
+  pub fn print_to_stderr(&self) {
+      unsafe {
+          ucp_ep_print_info(self.ptr, stderr);
+      }
+  }
+
   pub unsafe fn from_sockaddr(worker: Rc<Worker>, addr: SocketAddr) -> Result<Self, Error> {
       unsafe extern "C" fn err_handler(user_data: *mut c_void, _: ucp_ep_h, _: ucs_status_t) {
           let closed_flag: Weak<RefCell<bool>> = Weak::from_raw(user_data as _);
@@ -72,6 +88,7 @@ impl Endpoint {
       };
       let mut ep = MaybeUninit::uninit();
       let status = ucp_ep_create(worker.handle, &ep_params, ep.as_mut_ptr());
+      info!("from_sockaddr sockaddr: {:?} status: {:?}", addr, status);
       Error::from_status(status)?;
       worker.progress();
       Ok(Self {
@@ -81,7 +98,7 @@ impl Endpoint {
       })
   }
 
-  unsafe fn from_conn_req(
+  pub unsafe fn from_conn_req(
       worker: Rc<Worker>,
       conn_req: ConnectionRequest,
   ) -> Result<Self, Error> {
@@ -116,7 +133,7 @@ impl Endpoint {
       })
   }
 
-  unsafe fn tag_send<B: AsRef<[u8]>, C: Fn(ucs_status_t)>(
+  pub unsafe fn tag_send<B: AsRef<[u8]>, C: Fn(ucs_status_t)>(
       &self,
       tag: u64,
       buffer: B,
@@ -154,7 +171,7 @@ impl Endpoint {
       StatusPtr { ptr }
   }
 
-  unsafe fn tag_recv<C: Fn(ucs_status_t)>(
+  pub unsafe fn tag_recv<C: Fn(ucs_status_t)>(
       &self,
       buffer: &mut [MaybeUninit<u8>],
       tag: u64,

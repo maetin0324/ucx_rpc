@@ -10,9 +10,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use ucx1_sys::*;
 
-mod endpoint;
-mod listener;
-mod worker;
+pub mod endpoint;
+pub mod listener;
+pub mod worker;
 
 use crate::Error;
 
@@ -97,7 +97,11 @@ impl Context {
             request_init: None,
             request_cleanup: None,
             mt_workers_shared: 1,
-            ..unsafe { MaybeUninit::uninit().assume_init() }
+            tag_sender_mask: 0,
+            estimated_num_eps: 1,
+            estimated_num_ppn: 1,
+            name: null(),
+            // ..unsafe { MaybeUninit::uninit().assume_init() }
         };
         let mut handle = MaybeUninit::uninit();
         let status = unsafe {
