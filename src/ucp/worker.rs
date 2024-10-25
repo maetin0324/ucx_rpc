@@ -1,5 +1,6 @@
 use super::*;
 use derivative::*;
+use tracing::debug;
 #[cfg(feature = "am")]
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -152,6 +153,7 @@ impl Worker {
 
     /// Explicitly progresses all communication operations on a worker.
     pub fn progress(&self) -> u32 {
+        // debug!("Worker::progress");
         unsafe { ucp_worker_progress(self.handle) }
     }
 

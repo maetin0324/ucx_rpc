@@ -2,7 +2,7 @@ use super::*;
 use crate::ucp::listener::ConnectionRequest;
 use std::{cell::RefCell, net::SocketAddr, rc::Weak};
 use socket2::SockAddr;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 // 基本はRcで保持する
 // err_handlerが呼ばれると自動的にcloseされたとみなし、Weakを通してclosedフラグを立てる
@@ -24,14 +24,15 @@ impl StatusPtr {
   pub fn wait(self, worker: &Worker) -> Result<(), Error> {
       if !self.ptr.is_null() && UCS_PTR_STATUS(self.ptr) != ucs_status_t::UCS_OK {
           let mut checked_status = ucs_status_t::UCS_INPROGRESS;
+          debug!("wait worker: {:?}", worker.print_to_stderr());
           while checked_status == ucs_status_t::UCS_INPROGRESS {
               unsafe {
                 checked_status = ucp_request_check_status(self.ptr);
               }
               worker.progress();
-              info!("wait checked_status: {:?}", checked_status);
+              // info!("wait checked_status: {:?}", checked_status);
           }
-          // info!("wait checked_status: {:?}", checked_status);
+          debug!("wait checked_status: {:?}", checked_status);
           Error::from_status(checked_status)
       } else {
           Ok(())
@@ -39,13 +40,15 @@ impl StatusPtr {
   }
 
   pub fn status(&self) -> ucs_status_t {
+      debug!("StatusPtr status, ptr: {:?}", self.ptr);
       unsafe { ucp_request_check_status(self.ptr) }
   }
 }
 impl Drop for StatusPtr {
   fn drop(&mut self) {
+        debug!("StatusPtr drop, ptr: {:?}", self.ptr,);
       if UCS_PTR_IS_PTR(self.ptr) {
-          unsafe { ucp_request_free(self.ptr) }
+          unsafe { ucp_request_free(self.ptr as _) }
       }
   }
 }

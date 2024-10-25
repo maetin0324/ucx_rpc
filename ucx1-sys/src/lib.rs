@@ -27,7 +27,10 @@ pub fn UCS_PTR_IS_ERR(ptr: ucs_status_ptr_t) -> bool {
 }
 
 pub fn UCS_PTR_IS_PTR(ptr: ucs_status_ptr_t) -> bool {
-    ptr as usize - 1 < ucs_status_t::UCS_ERR_LAST as usize - 1
+    if ptr.is_null() {
+        return false;
+    }
+    (ptr as usize - 1) < (ucs_status_t::UCS_ERR_LAST as usize - 1)
 }
 
 pub fn UCS_PTR_RAW_STATUS(ptr: ucs_status_ptr_t) -> ucs_status_t {

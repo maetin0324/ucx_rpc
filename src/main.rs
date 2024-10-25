@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
 unsafe fn client_server_do_work(ep: Endpoint, is_server: bool) -> Result<(), Error> {
   info!("client_server_do_work ep: {:?}", ep);
   if is_server {
-      let mut buffer = [MaybeUninit::uninit(); 256];
+      let mut buffer = [MaybeUninit::uninit(); MESSAGE.len()];
       let rx_cb = Rc::new(|_| {});
       // let tx_cb = Rc::new(|_| {});
 
@@ -86,7 +86,7 @@ unsafe fn client_server_do_work(ep: Endpoint, is_server: bool) -> Result<(), Err
       let status = ep.tag_recv(&mut buffer, 99, 0, Rc::downgrade(&rx_cb));
       info!("server_do_work tag_recv: {:?}", status.status());
       status.wait(&ep.worker)?;
-      let buffer: [u8; 256] = std::mem::transmute(buffer);
+      let buffer: [u8; MESSAGE.len()] = std::mem::transmute(buffer);
       info!("received message: {:?}", std::str::from_utf8(&buffer).unwrap());
       info!("received all messages");
 
